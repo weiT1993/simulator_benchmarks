@@ -131,7 +131,10 @@ def generate_circ(full_circ_size,circuit_type):
     if circuit_type == 'supremacy_linear':
         full_circ = gen_supremacy(1,full_circ_size,8)
     elif circuit_type == 'supremacy_grid':
-        full_circ = gen_supremacy(i,j,8)
+        if abs(i-j)<=2:
+            full_circ = gen_supremacy(i,j,8)
+        else:
+            full_circ = QuantumCircuit()
     elif circuit_type == 'hwea':
         full_circ = gen_hwea(i*j,1)
     elif circuit_type == 'bv':
