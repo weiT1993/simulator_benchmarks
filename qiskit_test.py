@@ -18,7 +18,7 @@ def plot_runtime(runtimes):
         min_full_circ_size = min(min(full_circ_sizes),min_full_circ_size)
         max_full_circ_size = max(max(full_circ_sizes),max_full_circ_size)
     plt.xlabel('Number of qubits',fontsize=15)
-    plt.xticks(range(min_full_circ_size,max_full_circ_size+1,5),fontsize=15)
+    plt.xticks(range(min_full_circ_size,max_full_circ_size+1,2),fontsize=15)
     plt.ylabel('Runtime (s)',fontsize=15)
     plt.yticks(fontsize=15)
     plt.legend(fontsize=15)
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     runtimes = {}
     for circuit_type in ['supremacy_linear', 'supremacy_grid', 'hwea', 'bv', 'adder']:
         runtimes[circuit_type] = {}
-        for full_circ_size in range(5,21):
+        for full_circ_size in range(16,23):
             circ = generate_circ(full_circ_size=full_circ_size,circuit_type=circuit_type)
             if circ.size()>0:
                 begin = time()
