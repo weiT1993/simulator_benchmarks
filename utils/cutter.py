@@ -9,6 +9,7 @@ from qiskit.circuit import Measure
 from qiskit.circuit.quantumregister import QuantumRegister
 from qiskit.circuit.classicalregister import ClassicalRegister
 from qiskit.tools.visualization import dag_drawer
+import matplotlib.pyplot as plt
 
 def find_io_node(dag, wire):
     in_node = None
@@ -47,6 +48,7 @@ def cut_edges(original_dag, positions):
         dag after cutting is not successfully splitted
 
     '''
+    print('-'*50,'Begin cutting','-'*50)
     cut_dag = copy.deepcopy(original_dag)
     cutQ_register = QuantumRegister(len(positions), 'cutQ')
     cut_dag.add_qreg(cutQ_register)
@@ -55,6 +57,7 @@ def cut_edges(original_dag, positions):
         path_map[input_qubit] = []
 
     for cutQ_idx, position in enumerate(positions):
+        print('Cutting ',cutQ_idx,position)
         wire, source_node_idx = position
         
         nodes_before_cut = list(cut_dag.nodes_on_wire(wire=wire, only_ops=True))[:source_node_idx+1]
@@ -66,14 +69,24 @@ def cut_edges(original_dag, positions):
         _, original_out_node = find_io_node(cut_dag, wire)
         cut_in_node, cut_out_node = find_io_node(cut_dag, cut_qubit)
         
+        # nx.draw(cut_dag._multi_graph,with_labels=True)
+        # plt.savefig('dag_0.png',dpi=400)
+        # plt.close()
         cut_dag._multi_graph.add_edge(nodes_before_cut[len(nodes_before_cut)-1], original_out_node,
         name="%s[%s]" % (wire.register.name, wire.index), wire=wire)
+        # nx.draw(cut_dag._multi_graph,with_labels=True)
+        # plt.savefig('dag_1.png',dpi=400)
+        # plt.close()
+
         cut_dag._multi_graph.add_edge(cut_in_node, nodes_after_cut[0],
         name="%s[%s]" % (cut_qubit.register.name, cut_qubit.index), wire=cut_qubit)
         cut_dag._multi_graph.add_edge(nodes_after_cut[len(nodes_after_cut)-1], cut_out_node,
         name="%s[%s]" % (cut_qubit.register.name, cut_qubit.index), wire=cut_qubit)
         
         edge_key = find_edge_key(cut_dag._multi_graph, nodes_after_cut[len(nodes_after_cut)-1], original_out_node, wire)
+        # print('remove edge from:',nodes_after_cut[len(nodes_after_cut)-1]._op.name,nodes_after_cut[len(nodes_after_cut)-1].qargs)
+        # print('to :',original_out_node.type,original_out_node.name,original_out_node.qargs)
+        # print('edge key:',edge_key)
         cut_dag._multi_graph.remove_edge(nodes_after_cut[len(nodes_after_cut)-1], original_out_node, key=edge_key)
 
         edge_key = find_edge_key(cut_dag._multi_graph, nodes_before_cut[len(nodes_before_cut)-1], nodes_after_cut[0], wire)

@@ -111,37 +111,32 @@ class Basic_Model(object):
             num_effective_qubits.append(cluster_d-cluster_O_qubits)
 
             lb = 0
-            ub = self.num_qubits+30
-            ptx, ptf = self.pwl_exp(lb=lb,ub=ub,weight=1)
-            self.model.setPWLObj(cluster_d, ptx, ptf)
+            ub = int(np.log(6)*self.max_cluster_qubit*3)
+            ptx, ptf = self.pwl_exp(lb=lb,ub=ub,base=math.e)
+            collapse_cost_exponent = self.model.addVar(lb=lb, ub=ub, vtype=GRB.CONTINUOUS, name='collapse_cost_exponent_%d'%cluster)
+            self.model.addConstr(collapse_cost_exponent == np.log(2)*cluster_d+np.log(6)*cluster_rho_qubits+np.log(3)*cluster_O_qubits)
+            self.model.setPWLObj(collapse_cost_exponent, ptx, ptf)
             
             if cluster>0:
                 # self.model.addConstr(num_effective_qubits[cluster], GRB.GREATER_EQUAL,num_effective_qubits[cluster-1])
-                reconstructor_cost_exponent = self.model.addVar(lb=lb, ub=ub, vtype=GRB.INTEGER, name='reconstructor_cost_exponent_%d'%cluster)
-                self.model.addConstr(reconstructor_cost_exponent == quicksum(num_effective_qubits)+2*self.num_cuts)
-                self.model.setPWLObj(reconstructor_cost_exponent, ptx, ptf)
+                ub = self.num_qubits+30
+                ptx, ptf = self.pwl_exp(lb=lb,ub=ub,base=2)
+                build_cost_exponent = self.model.addVar(lb=lb, ub=ub, vtype=GRB.INTEGER, name='build_cost_exponent_%d'%cluster)
+                self.model.addConstr(build_cost_exponent == quicksum(num_effective_qubits)+2*self.num_cuts)
+                self.model.setPWLObj(build_cost_exponent, ptx, ptf)
 
         # self.model.setObjective(self.num_cuts,GRB.MINIMIZE)
         self.model.update()
     
-    def pwl_exp(self, lb, ub, weight):
+    def pwl_exp(self, lb, ub, base):
         # Piecewise linear approximation of 2**x
         ptx = []
         ptf = []
 
         for x in range(lb,ub+1):
-            y = 2**x
+            y = base**x
             ptx.append(x)
             ptf.append(y)
-
-        # NOTE: The granularity greatly affects speed
-        # num_pt = int(ub-lb+1)
-
-        # for i in range(num_pt):
-        #     x = (ub-lb)/(num_pt-1)*i+lb
-        #     y = 2**x
-        #     ptx.append(x)
-        #     ptf.append(y)
         return ptx, ptf
     
     def check_graph(self, n_vertices, edges):
@@ -205,6 +200,10 @@ class Basic_Model(object):
         # (self.n_vertices, self.n_edges, self.cluster_max_qubit))
         print('%d cuts, %d clusters'%(len(self.cut_edges),self.num_cluster))
 
+        collapse_cost_verify = 0
+        build_cost_verify = 0
+        cluster_effective = []
+
         for i in range(self.num_cluster):
             cluster_input = self.model.getVarByName('cluster_input_%d'%i)
             cluster_rho_qubits = self.model.getVarByName('cluster_rho_qubits_%d'%i)
@@ -212,13 +211,17 @@ class Basic_Model(object):
             cluster_d = self.model.getVarByName('cluster_d_%d'%i)
             print('cluster %d: original input = %.2f, \u03C1_qubits = %.2f, O_qubits = %.2f, d = %.2f, effective = %.2f' % 
             (i,cluster_input.X,cluster_rho_qubits.X,cluster_O_qubits.X,cluster_d.X,cluster_d.X-cluster_O_qubits.X),end='')
+            collapse_cost_verify += 6**cluster_rho_qubits.X*3**cluster_O_qubits.X*2**cluster_d.X
+            cluster_effective.append(cluster_d.X-cluster_O_qubits.X)
             if i>0:
-                reconstructor_cost_exponent = self.model.getVarByName('reconstructor_cost_exponent_%d'%i)
-                print(', reconstructor_cost_exponent = %.2f'%reconstructor_cost_exponent.X)
+                build_cost_exponent = self.model.getVarByName('build_cost_exponent_%d'%i)
+                print(', build_cost_exponent = %.2f'%build_cost_exponent.X)
+                build_cost_verify += 4**len(self.cut_edges)*2**sum(cluster_effective)
             else:
                 print()
 
-        print('Model objective value = %.2f'%(self.objective))
+        print('Model objective value = %.2e'%(self.objective))
+        print('Collapse cost verify = %.2e, build cost verify = %.2e, total = %.2e'%(collapse_cost_verify,build_cost_verify,collapse_cost_verify+build_cost_verify))
         # print('mip gap:', self.mip_gap)
         print('runtime:', self.runtime)
 
@@ -341,7 +344,7 @@ def find_cuts(circ, max_cluster_qubit):
     min_postprocessing_cost = float('inf')
     
     # NOTE: max number of clusters is hard coded to be 5
-    for num_cluster in range(2,6):
+    for num_cluster in range(2,3):
         if num_cluster*max_cluster_qubit-(num_cluster-1)<num_qubits or num_cluster>num_qubits:
             print('%d-qubit circuit %d*%d clusters : IMPOSSIBLE'%(num_qubits,num_cluster,max_cluster_qubit))
             continue
