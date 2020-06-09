@@ -82,7 +82,7 @@ class Basic_Model(object):
         #     self.model.addConstr(quicksum([self.vertex_y[cluster_idx][j] for j in range(n_vertices)]), GRB.LESS_EQUAL, quicksum([self.vertex_y[cluster_idx+1][j] for j in range(n_vertices)]))
         
         # NOTE: max cuts is hard coded to 10 here
-        self.num_cuts = self.model.addVar(lb=0, ub=20, vtype=GRB.INTEGER, name='num_cuts')
+        self.num_cuts = self.model.addVar(lb=0, ub=10, vtype=GRB.INTEGER, name='num_cuts')
         self.model.addConstr(self.num_cuts == 
         quicksum(
             [self.edge_x[cluster][i] for i in range(self.n_edges) for cluster in range(num_cluster)]
@@ -344,7 +344,7 @@ def find_cuts(circ, max_cluster_qubit):
     min_postprocessing_cost = float('inf')
     
     # NOTE: max number of clusters is hard coded to be 5
-    for num_cluster in range(2,3):
+    for num_cluster in range(2,4):
         if num_cluster*max_cluster_qubit-(num_cluster-1)<num_qubits or num_cluster>num_qubits:
             print('%d-qubit circuit %d*%d clusters : IMPOSSIBLE'%(num_qubits,num_cluster,max_cluster_qubit))
             continue

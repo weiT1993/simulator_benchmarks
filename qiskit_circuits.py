@@ -1,6 +1,9 @@
 from utils.MIP_searcher import find_cuts
 from utils.cutter import cut_circuit
 from qcg.generators import gen_qft
+from utils.helper_fun import get_evaluator_info
+from utils.passes import noiseadaptive
+from utils.metrics import reliability_score
 
 import qiskit.circuit.library as library
 from qiskit.converters import circuit_to_dag, dag_to_circuit
@@ -12,46 +15,26 @@ import numpy as np
 import math
 import os
 import networkx as nx
+from qiskit.compiler import transpile
 
-num_qubits = 37
-for num_qubits in range(10,50):
-    approximation_degree=int(math.log(num_qubits,2)+2)
-    circ = library.HiddenLinearFunction(adjacency_matrix= [[1, 1, 0], [1, 0, 1], [0, 1, 1]])
-    circ = library.PauliFeatureMap(feature_dimension=5,reps=1)
-    circ = library.QFT(num_qubits=num_qubits,approximation_degree=num_qubits-approximation_degree,do_swaps=False)
-    # print(circ)
-    # print('%d two-qubit gates'%circ.num_nonlocal_gates())
-    num_gates_0 = circ.num_nonlocal_gates()
+num_qubits = 10
 
-    circ = gen_qft(width=num_qubits,approximation_degree=approximation_degree,barriers=False)
-    # print(circ)
-    # print('%d two-qubit gates'%circ.num_nonlocal_gates())
-    num_gates_1 = circ.num_nonlocal_gates()
-    assert num_gates_0 == num_gates_1
+approximation_degree=int(math.log(num_qubits,2)+2)
+circ = library.HiddenLinearFunction(adjacency_matrix= [[1, 1, 0], [1, 0, 1], [0, 1, 1]])
+circ = library.PauliFeatureMap(feature_dimension=5,reps=1)
+circ = library.QFT(num_qubits=num_qubits,approximation_degree=num_qubits-approximation_degree,do_swaps=False)
+circ = library.QuantumVolume(num_qubits=num_qubits)
 
-# circ = library.Permutation(num_qubits=6,pattern=[2,3,4,5,0,1]).decompose()
-# pickle.dump(circ, open('circ_eg.pckl','wb'))
-# dag = circuit_to_dag(circ)
-# dag.draw()
-# for node in dag._multi_graph.nodes():
-#     data = dag._multi_graph.get_node_data(node._node_id)
-#     print(type(data),data)
-# dag.draw()
+device_evaluator_info = get_evaluator_info(circ=circ,device_name='ibmq_johannesburg',fields=['device','initial_layout','properties','basis_gates','coupling_map'])
+mapped_circuit = transpile(circ,backend=device_evaluator_info['device'],initial_layout=device_evaluator_info['initial_layout'])
+reliability = reliability_score(circuit=mapped_circuit,backend_prop=device_evaluator_info['properties'])
+print(reliability)
 
-# solution_dict = find_cuts(circ=circ,max_cluster_qubit=int(num_qubits/1.5))
-# solution_dict['model'].print_stat()
-# cluster_circs, complete_path_map, K, d = cut_circuit(circ=circ,positions=solution_dict['positions'])
-# print('MIP: {:d}-qubit full circuit {:d} cuts, clusters: {}'.format(num_qubits,len(solution_dict['positions']),solution_dict['num_d_qubits']))
-# print('Cutter: {}'.format(d))
+na_circ = noiseadaptive(circ,device_evaluator_info)
+reliability = reliability_score(circuit=na_circ,backend_prop=device_evaluator_info['properties'])
+print(reliability)
 
-# approximation_degree = np.array(range(num_qubits))
-# prob = [8/math.pi**2*math.sin(math.pi/4*(num_qubits-m)/num_qubits)**2 for m in approximation_degree]
-
-# plt.figure()
-# plt.plot(approximation_degree,prob)
-# plt.axhline(y=4/math.pi**2,color='k',linestyle='--')
-# plt.xlabel('approximation degree')
-# plt.ylabel('prob')
-# plt.yscale('log')
-# plt.title('%d-qubit AQFT'%num_qubits)
-# plt.show()
+decomposed_circ = transpile(circ,basis_gates=device_evaluator_info['basis_gates'])
+solution_dict = find_cuts(circ=decomposed_circ, max_cluster_qubit=8)
+if solution_dict != {}:
+    solution_dict['model'].print_stat()
