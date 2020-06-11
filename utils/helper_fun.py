@@ -139,8 +139,10 @@ def generate_circ(full_circ_size,circuit_type):
         full_circ = gen_hwea(i*j,1)
     elif circuit_type == 'bv':
         full_circ = gen_BV(gen_secret(i*j),barriers=False)
-    elif circuit_type == 'qft':
-        full_circ = gen_qft(width=i*j, barriers=False)
+    elif circuit_type == 'aqft':
+        approximation_degree=int(math.log(full_circ_size,2)+2)
+        # print('%d-qubit AQFT, approximation_degree = %d'%(full_circ_size,approximation_degree))
+        full_circ = gen_qft(width=i*j, approximation_degree=approximation_degree,barriers=False)
     elif circuit_type == 'sycamore':
         full_circ = gen_sycamore(i,j,8)
     elif circuit_type == 'adder':

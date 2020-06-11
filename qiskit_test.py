@@ -29,7 +29,7 @@ def plot_runtime(runtimes):
 
 if __name__ == '__main__':
     runtimes = {}
-    for circuit_type in ['supremacy_linear', 'supremacy_grid', 'hwea', 'bv', 'adder']:
+    for circuit_type in ['supremacy_linear', 'supremacy_grid', 'hwea', 'bv', 'adder', 'aqft']:
         runtimes[circuit_type] = {}
         for full_circ_size in range(16,23):
             circ = generate_circ(full_circ_size=full_circ_size,circuit_type=circuit_type)
