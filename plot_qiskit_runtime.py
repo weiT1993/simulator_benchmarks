@@ -9,24 +9,26 @@ def func(x, a, b, c):
 
 if __name__ == '__main__':
     times = read_file(filename='./qiskit_benchmark.pckl')
-    sizes = list(times.keys())
-    ydata = list(times.values())
-    x_fit = np.linspace(min(sizes), 36, 50)
-    x_ticks = [x for x in range(int(min(x_fit)), int(max(x_fit))+1) if x%5==0]
-
-    popt, pcov = curve_fit(func, sizes, ydata)
-    print(popt)
-
     plt.figure()
-    plt.plot(sizes,ydata, 'b*', label='Classical Runtime')
-    # plt.plot(x_fit, func(x_fit, *popt), 'r-',label=r'$O(e^{%.2f \times q})$'%(popt[1]))
-    plt.plot(x_fit, func(x_fit, *popt), 'r-',label='Extrapolation')
-    
+    x_ticks = set()
+    for circuit_type in times:
+        sizes = list(times[circuit_type].keys())
+        ydata = list(times[circuit_type].values())
+        x_fit = np.linspace(min(sizes), 36, 50)
+        [x_ticks.add(x) for x in range(int(min(x_fit)), int(max(x_fit))+1) if x%5==0]
+
+        popt, pcov = curve_fit(func, sizes, ydata)
+        print(popt)
+
+        plt.plot(sizes,ydata, '*', label='%s'%circuit_type)
+        # plt.plot(x_fit, func(x_fit, *popt), 'r-',label=r'$O(e^{%.2f \times q})$'%(popt[1]))
+        plt.plot(x_fit, func(x_fit, *popt), '-')
+        
+    x_ticks = list(x_ticks)
     plt.axhline(y=60*60,color='k',linestyle='--')
     plt.text(x=max(x_ticks)-2, y=60*60*1.2, s='1h', color='k',fontsize=15)
     plt.axhline(y=60,color='k',linestyle='--')
     plt.text(x=max(x_ticks)-2, y=60*1.2, s='1min', color='k',fontsize=15)
-
     plt.xticks(x_ticks,x_ticks,fontsize=15)
     plt.yticks(fontsize=15)
     plt.yscale('log')
@@ -35,4 +37,5 @@ if __name__ == '__main__':
     plt.legend(fontsize=15)
     plt.title('Classical Simulation of Quantum Circuits\nScales Exponentially',fontsize=15)
     plt.tight_layout()
-    plt.savefig('./real/qiskit_runtime.pdf',transparent=False,dpi=400)
+    plt.savefig('./qiskit_runtime.pdf',transparent=False,dpi=400)
+    plt.close()
