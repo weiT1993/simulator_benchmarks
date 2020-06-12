@@ -20,18 +20,24 @@ if __name__ == '__main__':
         [x_ticks.add(x) for x in range(int(min(x_fit)), int(max(x_fit))+1) if x%5==0]
 
         popt, pcov = curve_fit(func, sizes, ydata)
-        print(popt)
+        # print(popt)
 
         plt.plot(sizes,ydata, '%s*'%colors[color_ctr], label='%s'%circuit_type)
         # plt.plot(x_fit, func(x_fit, *popt), 'r-',label=r'$O(e^{%.2f \times q})$'%(popt[1]))
         plt.plot(x_fit, func(x_fit, *popt), '%s-'%colors[color_ctr])
         color_ctr += 1
+
+        print(circuit_type)
+        print(sizes)
+        print(ydata)
+        print()
         
     x_ticks = list(x_ticks)
     plt.axhline(y=60*60,color='k',linestyle='--')
     plt.text(x=max(x_ticks)-2, y=60*60*1.2, s='1h', color='k',fontsize=15)
     plt.axhline(y=60,color='k',linestyle='--')
     plt.text(x=max(x_ticks)-2, y=60*1.2, s='1min', color='k',fontsize=15)
+    plt.grid(True)
     plt.xticks(x_ticks,x_ticks,fontsize=15)
     plt.yticks(fontsize=15)
     plt.yscale('log')
