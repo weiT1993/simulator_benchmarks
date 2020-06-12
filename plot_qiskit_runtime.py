@@ -9,20 +9,23 @@ def func(x, a, b, c):
 
 if __name__ == '__main__':
     times = read_file(filename='./qiskit_benchmark.pckl')
+    colors = ['b','g','r','c','m','y','k']
+    color_ctr = 0
     plt.figure()
     x_ticks = set()
     for circuit_type in times:
         sizes = list(times[circuit_type].keys())
         ydata = list(times[circuit_type].values())
-        x_fit = np.linspace(min(sizes), 36, 50)
+        x_fit = np.linspace(max(20,min(sizes)), 36, 50)
         [x_ticks.add(x) for x in range(int(min(x_fit)), int(max(x_fit))+1) if x%5==0]
 
         popt, pcov = curve_fit(func, sizes, ydata)
         print(popt)
 
-        plt.plot(sizes,ydata, '*', label='%s'%circuit_type)
+        plt.plot(sizes,ydata, '%s*'%colors[color_ctr], label='%s'%circuit_type)
         # plt.plot(x_fit, func(x_fit, *popt), 'r-',label=r'$O(e^{%.2f \times q})$'%(popt[1]))
-        plt.plot(x_fit, func(x_fit, *popt), '-')
+        plt.plot(x_fit, func(x_fit, *popt), '%s-'%colors[color_ctr])
+        color_ctr += 1
         
     x_ticks = list(x_ticks)
     plt.axhline(y=60*60,color='k',linestyle='--')
