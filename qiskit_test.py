@@ -31,7 +31,7 @@ if __name__ == '__main__':
     runtimes = {}
     for circuit_type in ['supremacy_linear', 'supremacy_grid', 'hwea', 'bv', 'adder', 'aqft']:
         runtimes[circuit_type] = {}
-        for full_circ_size in range(16,26):
+        for full_circ_size in range(10,29):
             if circuit_type != 'supremacy_grid' and full_circ_size%2!=0:
                 continue
             circ = generate_circ(full_circ_size=full_circ_size,circuit_type=circuit_type)
